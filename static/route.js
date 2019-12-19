@@ -139,6 +139,19 @@ var baseMaps = {
  "OSM": osm
  };
 
+ $(document).ready(function(){
+  var traffic1 = $.ajax({
+  url: '/traffic-information',
+  dataType: "json",
+  success: function(response){
+    geojsonLayer = L.geoJson(response).addTo(map);
+  },
+  error: function(xhr) {
+    alert(`Route: ${xhr.statusText}`);
+  }
+  })
+});
+
 L.control.layers( baseMaps, layerControl ).addTo( map )
 
 
