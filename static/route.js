@@ -15,7 +15,7 @@ var map = L.map('map',{
   layers: [osm],
   key: 'GwGviqOg5HsrJIvHdRAAGcHTs6IruFWE', 
   basePath: 'sdk', 
- // traffic: true, 
+  //traffic: true, 
    //trafficFlow: true
 });
 
