@@ -1,4 +1,4 @@
-from flask import Flask, escape, request, Response
+from flask import Flask, escape, request, Response,  render_template, jsonify
 import psycopg2
 import os
 import json
@@ -12,7 +12,7 @@ import geopandas as gpd
 from geojson import Point, Feature, FeatureCollection, dump
 import numpy as np
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder='templates')
 
 
 #print(data)
@@ -20,41 +20,59 @@ app = Flask(__name__)
 
 
 def index():
-   
-
-   
 
 	map = folium.Map(tiles='https://maps.heigit.org/openmapsurfer/tiles/roads/webmercator/{z}/{x}/{y}.png', 
 							attr='Map data (c) OpenStreetMap, Tiles (c) <a href="https://heigit.org">GIScience Heidelberg</a>', 
 							location=([55.71459, 12.577]), 
 							zoom_start=7) # Create map
 
-	requestTraffic()
-	popup_route = "<h4>{0} route</h4><hr>"              "<strong>Duration: </strong>{1:.1f} mins<br>"              "<strong>Distance: </strong>{2:.3f} km" 
+	#Adding traffic information
+	trafficUrl = "http://127.0.0.1:5000/traffic-information"
+	req = requests.get(url = trafficUrl) 
+	traffic = req.json() 
 
-   
-	# Build routing popup
-	duration, distance = regular_route['features'][0]['properties']['summary'].values()
-	popup = folium.map.Popup(popup_route.format('Regular', 
-													 duration/60, 
-													 distance/1000))
-
-	gj= folium.GeoJson(regular_route,
-					   name='Regular Route',
-					  ) \
-			  .add_child(popup)\
-			  .add_to(map)
-	folium.Marker(list(reversed(coordinates[0])), popup='Bundeskanzleramt').add_to(map)
-	folium.Marker(list(reversed(coordinates[1])), popup='Deutsches Currywurst Museum').add_to(map)
-
-	
-	#Stile the LineStrings
-	flip_geojson_coordinates(flip_coordinates)
+	#Styles the traffic information layer
 	style_function = lambda x: {
 		'color' : 'blue',
 	}
+	#Adds geoJson to the map
+	folium.GeoJson(traffic,style_function=style_function).add_to(map)
+
+
+	#Add route to the map
+	routeUrl = "http://127.0.0.1:5000/request-route"
+	routeReq = requests.get(url = routeUrl) 
+	route = routeReq.json() 
+
+	#Styles route
+	style_route = lambda x: {
+		'color' : 'green',
+	}
+	#Add the route to the map
+	folium.GeoJson(route,style_function=style_route).add_to(map)
 	
-	folium.GeoJson(feature_collection,style_function=style_function).add_to(map)
+	#popup_route = "<h4>{0} route</h4><hr>"              "<strong>Duration: </strong>{1:.1f} mins<br>"              "<strong>Distance: </strong>{2:.3f} km" 
+
+   
+	# Build routing popup
+	# duration, distance = regular_route['features'][0]['properties']['summary'].values()
+	# popup = folium.map.Popup(popup_route.format('Regular', 
+	# 												 duration/60, 
+	# 												 distance/1000))
+
+	# gj= folium.GeoJson(regular_route,
+	# 				   name='Regular Route',
+	# 				  ) \
+	# 		  .add_child(popup)\
+	# 		  .add_to(map)
+	#folium.Marker(list(reversed(coordinates[0])), popup='Bundeskanzleramt').add_to(map)
+	#folium.Marker(list(reversed(coordinates[1])), popup='Deutsches Currywurst Museum').add_to(map)
+
+	
+	# Stile the LineStrings
+	#flip_geojson_coordinates(flip_coordinates)
+	
+
 
 	
    
@@ -218,17 +236,13 @@ def requestTraffic():
 																	
 																	#Creates a FeatureCollection
 																	feature_collection = FeatureCollection(features)
-																	#print(feature_collection)
+																	#print(feature_collection)																   
 
-																   
-
-													   
-																	
-
+													
 												if key == 'FF':
 													ssFreeFlow = ssFinalValues
 													#print("SS Free Flow: "+str(ssFreeFlow))
-  
+
 
 
 	#Flipping the coordinates in the GeoJson Featured Collection
