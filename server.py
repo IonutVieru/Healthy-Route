@@ -40,7 +40,7 @@ def index():
 
 
 	#Add route to the map
-	routeUrl = "http://127.0.0.1:5000/request-route"
+	routeUrl = "http://127.0.0.1:5000/request-route&start=12.624406814575197,55.664079718036724;&end=12.458496093750002,55.69422894298507;&profile=driving-car"
 	routeReq = requests.get(url = routeUrl) 
 	route = routeReq.json() 
 
@@ -51,34 +51,7 @@ def index():
 	#Add the route to the map
 	folium.GeoJson(route,style_function=style_route).add_to(map)
 	
-	#popup_route = "<h4>{0} route</h4><hr>"              "<strong>Duration: </strong>{1:.1f} mins<br>"              "<strong>Distance: </strong>{2:.3f} km" 
-
-   
-	# Build routing popup
-	# duration, distance = regular_route['features'][0]['properties']['summary'].values()
-	# popup = folium.map.Popup(popup_route.format('Regular', 
-	# 												 duration/60, 
-	# 												 distance/1000))
-
-	# gj= folium.GeoJson(regular_route,
-	# 				   name='Regular Route',
-	# 				  ) \
-	# 		  .add_child(popup)\
-	# 		  .add_to(map)
-	#folium.Marker(list(reversed(coordinates[0])), popup='Bundeskanzleramt').add_to(map)
-	#folium.Marker(list(reversed(coordinates[1])), popup='Deutsches Currywurst Museum').add_to(map)
-
 	
-	# Stile the LineStrings
-	#flip_geojson_coordinates(flip_coordinates)
-	
-
-
-	
-   
-
-	#folium.TileLayer(tiles='https://tiles.traffic.api.here.com/traffic/6.0/tiles/{z}/{x}/{y}/256/png32?app_id=67Jad2HjPh8wXb3Eau3A&app_code=3hlMkBLEzMRbJp-Aondktw', attr='Here.com').add_to(map)
-	#map.add_child(folium.ClickForMarker(popup='Waypoint'))
 
 	# #map
 
@@ -279,30 +252,3 @@ def requestRoute(lon, lat, lon2, lat2, profile):
 	regular_route = clnt.directions(**direction_params) # Direction request
 	return regular_route
 
-
-# @app.route('/api', methods = ['POST'])
-# def test():
-# 	return render_template('test.html')
-
-
-@app.route('/test')
-def test():
-	return render_template('test.html')
-
-@app.route('/background_process')
-def background_process():
-	try:
-		lang = request.args.get('proglang', 0, type=str)
-		if lang.lower() == 'python':
-			return jsonify(result='You are Woohoo')
-		else:
-			return jsonify(result='Try again.')
-	except Exception as e:
-		return str(e)
-
-@app.route('/interactive')
-def interactive():
-	try:
-		return render_template('interactive.html')
-	except Exception as e:
-		return (str(e))
