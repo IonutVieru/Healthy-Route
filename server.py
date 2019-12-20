@@ -1,4 +1,4 @@
-from flask import Flask, escape, request, Response,  render_template, jsonify
+from flask import Flask, escape, request, Response,  render_template, jsonify, redirect, url_for, session, flash
 import psycopg2
 import os
 import json
@@ -263,17 +263,46 @@ def requestTraffic():
 	flip_geojson_coordinates(flip_coordinates)
 	return feature_collection
 	
-@app.route('/request-route')
-def requestRoute():
+@app.route('/request-route&start=<lon>,<lat>;&end=<lon2>,<lat2>;&profile=<profile>')
+def requestRoute(lon, lat, lon2, lat2, profile):
 	api_key = '5b3ce3597851110001cf62480bce1c9f6f5041d0ae79d1a8847f8b98' #https://openrouteservice.org/sign-up
 	clnt = client.Client(key=api_key)
-	# Request route
-	coordinates = [[12.597, 55.71499], [12.507, 55.71409]]
+	 #Request route
+	coordinates = [[lon, lat], [lon2, lat2]]
+	
 	direction_params = {'coordinates': coordinates,
-						'profile': 'driving-car', 
+						'profile': profile, 
 						'format_out': 'geojson',
-						'preference': 'shortest',
+						'preference': 'fastest',
 						'geometry': 'true'}
 
 	regular_route = clnt.directions(**direction_params) # Direction request
 	return regular_route
+
+
+# @app.route('/api', methods = ['POST'])
+# def test():
+# 	return render_template('test.html')
+
+
+@app.route('/test')
+def test():
+	return render_template('test.html')
+
+@app.route('/background_process')
+def background_process():
+	try:
+		lang = request.args.get('proglang', 0, type=str)
+		if lang.lower() == 'python':
+			return jsonify(result='You are Woohoo')
+		else:
+			return jsonify(result='Try again.')
+	except Exception as e:
+		return str(e)
+
+@app.route('/interactive')
+def interactive():
+	try:
+		return render_template('interactive.html')
+	except Exception as e:
+		return (str(e))

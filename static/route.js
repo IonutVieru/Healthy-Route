@@ -1,6 +1,3 @@
-
-
-
 //Defines the basemap
 var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   minZoom:10,
@@ -41,6 +38,8 @@ map.on('click',clickME);
     	if (clicks == 0){
     		lat = e.latlng.lat;
     		lon = e.latlng.lng;
+
+
     		//Add a marker to show where you clicked.
     		Marker = L.marker([lat,lon]).bindPopup('Start');
             Marker.addTo(map);
@@ -63,12 +62,19 @@ map.on('click',clickME);
     	}else if(clicks == 1){
     		lat2 = e.latlng.lat;
     		lon2 = e.latlng.lng;
+
+        
     		//Add a marker to show where you clicked.
     		Marker2 = L.marker([lat2,lon2]).bindPopup('End');
             Marker2.addTo(map);
             
-    		console.log("Second click:You clicked the map at LAT: "+ lat2+" and LONG: "+lon2 );
-    		makeRequest();
+    		console.log("Second click:You clicked the map at LAT: "+ lat2+"and LONG: "+lon2+"Profile="+profile );
+
+    		routeRequest(lon, lat, lon2, lat2, profile);
+
+        //Makes a route request directly to OpenRouteService
+        //makeRequest()
+        
     		clicks +=1;
     	} else if(clicks >= 2){
             if (Marker && Marker2) { // check
@@ -80,11 +86,38 @@ map.on('click',clickME);
     	
  		}
 }
-
-
+ //Flask route request
+function routeRequest(lon,lat,lon2,lat2,profile){
+          
+  var routeReq = '/request-route&start='+lon+','+lat+';'+'&end='+lon2+','+lat2+';'+'&profile='+profile;
+  var route1 = $.ajax({
+  url: routeReq,
+  dataType: "json",
+  success: console.log("Data successfully loaded." + routeReq),
+    error: function(xhr) {
+              alert(`Route: ${xhr.statusText}`);
+            }
+    });
+   // when().done() SECTION
+  // Add the variable for each of your AJAX requests to $.when()
+  $.when(route1).done(function() {
+  // Add requested external GeoJSON to map
+  var kyCounties = L.geoJSON(route1.responseJSON, {
+    onEachFeature: function (feature, layer) {
+        layer.myTag = "myGeoJSON"
+    },
+    opacity: 0.5,
+    color: 'blue',
+    weight: 7,
+    zoomAnimated: true
+    }).addTo(map);
+});
+}
 
 console.log(profile);
-//Makes a request to the OpenRoute API to get the route
+
+//Makes a request dictly to the OpenRoute API to get the route
+//To be deleted
 function makeRequest(){
  	//Request URL
 	var req = "https://api.openrouteservice.org/v2/directions/"+profile+"?api_key=5b3ce3597851110001cf62480bce1c9f6f5041d0ae79d1a8847f8b98&start="+lon+","+lat+"&end="+lon2+","+lat2
@@ -109,7 +142,7 @@ function makeRequest(){
         layer.myTag = "myGeoJSON"
     },
     opacity: 0.5,
-    color: 'blue',
+    color: 'red',
     weight: 7,
     zoomAnimated: true
     }).addTo(map);
