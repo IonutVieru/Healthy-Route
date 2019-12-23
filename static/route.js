@@ -69,11 +69,11 @@ map.on('click',clickME);
             Marker2.addTo(map);
             
     		console.log("Second click:You clicked the map at LAT: "+ lat2+"and LONG: "+lon2+"Profile="+profile );
-
-    		routeRequest(lon, lat, lon2, lat2, profile);
-
-        //Makes a route request directly to OpenRouteService
-        //makeRequest()
+        //Simple route request to the server
+        routeRequest(lon, lat, lon2, lat2, profile);
+        
+        //Avoid polygons route request to the server
+        avoidPolygonsRequest(lon,lat,lon2,lat2,profile);
         
     		clicks +=1;
     	} else if(clicks >= 2){
@@ -116,39 +116,69 @@ function routeRequest(lon,lat,lon2,lat2,profile){
 
 console.log(profile);
 
-//Makes a request dictly to the OpenRoute API to get the route
-//To be deleted
-function makeRequest(){
- 	//Request URL
-	var req = "https://api.openrouteservice.org/v2/directions/"+profile+"?api_key=5b3ce3597851110001cf62480bce1c9f6f5041d0ae79d1a8847f8b98&start="+lon+","+lat+"&end="+lon2+","+lat2
- 	
-  console.log(req);
-  //Get request to OpenRouteService to get the route 
-  var route = $.ajax({
-  url: req,
-  dataType: "json",
-  success: console.log("Data successfully loaded."),
-  error: function(xhr) {
-    alert(`Route: ${xhr.statusText}`);
-  }
-  });
-
-   // when().done() SECTION
-  // Add the variable for each of your AJAX requests to $.when()
-  $.when(route).done(function() {
-  // Add requested external GeoJSON to map
-  var kyCounties = L.geoJSON(route.responseJSON, {
-    onEachFeature: function (feature, layer) {
-        layer.myTag = "myGeoJSON"
-    },
-    opacity: 0.5,
-    color: 'red',
-    weight: 7,
-    zoomAnimated: true
-    }).addTo(map);
-});
-
+function avoidPolygonsRequest(lon,lat,lon2,lat2,profile){
+  //Request URL
+ var req = '/avoid-route&start='+lon+','+lat+';'+'&end='+lon2+','+lat2+';'+'&profile='+profile;
+  
+ console.log(req);
+ //Get request to OpenRouteService to get the route 
+ var route = $.ajax({
+ url: req,
+ dataType: "json",
+ success: console.log("Data successfully loaded."),
+ error: function(xhr) {
+   alert(`Route: ${xhr.statusText}`);
  }
+ });
+
+  // when().done() SECTION
+ // Add the variable for each of your AJAX requests to $.when()
+ $.when(route).done(function() {
+ // Add requested external GeoJSON to map
+ var kyCounties = L.geoJSON(route.responseJSON, {
+   onEachFeature: function (feature, layer) {
+       layer.myTag = "myGeoJSON"
+   },
+   opacity: 0.5,
+   color: 'black',
+   weight: 7,
+   zoomAnimated: true
+   }).addTo(map);
+});
+ }
+
+ function getBuffer(){
+  //Request URL
+ var req = '/avoid-polygons'
+  
+ //Get request to OpenRouteService to get the route 
+ var polygon = $.ajax({
+ url: req,
+ dataType: "json",
+ success: console.log("Traffic polygon buffers successfully loaded."),
+ error: function(xhr) {
+   alert(`Route: ${xhr.statusText}`);
+ }
+ });
+
+  // when().done() SECTION
+ // Add the variable for each of your AJAX requests to $.when()
+ $.when(polygon).done(function() {
+ // Add requested external GeoJSON to map
+ var kyCounties = L.geoJSON(polygon.responseJSON, {
+   onEachFeature: function (feature, layer) {
+       layer.myTag = "Traffic polygon buffers"
+   },
+   opacity: 0.5,
+   color: 'red',
+   weight: 1,
+   zoomAnimated: true
+   }).addTo(map);
+});
+ }
+//Initialise the function
+getBuffer();
+
 //Removes the old route
 var removeRoute = function() {
     map.eachLayer( function(layer) {
@@ -158,6 +188,8 @@ var removeRoute = function() {
 
     });
 }
+
+
 
 var trafficFlowLayer = new tomtom.L.TomTomTrafficFlowLayer(); 
 let layerControl = {

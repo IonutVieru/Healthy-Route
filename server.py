@@ -9,8 +9,10 @@ from openrouteservice import client
 from shapely.geometry import LineString, Polygon, mapping, shape
 from shapely.ops import cascaded_union
 import geopandas as gpd
-from geojson import Point, Feature, FeatureCollection, dump
+from geojson import Point, Feature, FeatureCollection, dump, MultiPolygon
 import numpy as np
+import logging
+logging.basicConfig(level=logging.DEBUG)
 
 app = Flask(__name__, template_folder='templates')
 
@@ -20,7 +22,9 @@ app = Flask(__name__, template_folder='templates')
 
 
 def index():
-
+	buffer = []
+	api_key = '5b3ce3597851110001cf62480bce1c9f6f5041d0ae79d1a8847f8b98' #https://openrouteservice.org/sign-up
+	clnt = client.Client(key=api_key)
 	map = folium.Map(tiles='https://maps.heigit.org/openmapsurfer/tiles/roads/webmercator/{z}/{x}/{y}.png', 
 							attr='Map data (c) OpenStreetMap, Tiles (c) <a href="https://heigit.org">GIScience Heidelberg</a>', 
 							location=([55.71459, 12.577]), 
@@ -33,11 +37,11 @@ def index():
 
 	#Styles the traffic information layer
 	style_function = lambda x: {
-		'color' : 'blue',
+		'color' : 'red',
 	}
+	
 	#Adds geoJson to the map
 	folium.GeoJson(traffic,style_function=style_function).add_to(map)
-
 
 	#Add route to the map
 	routeUrl = "http://127.0.0.1:5000/request-route&start=12.624406814575197,55.664079718036724;&end=12.458496093750002,55.69422894298507;&profile=driving-car"
@@ -48,16 +52,8 @@ def index():
 	style_route = lambda x: {
 		'color' : 'green',
 	}
-	#Add the route to the map
-	folium.GeoJson(route,style_function=style_route).add_to(map)
 	
-	
-
-	# #map
-
-
-
-
+	map.add_child(folium.map.LayerControl())
 	
 	return map._repr_html_()
 
@@ -70,6 +66,7 @@ if __name__ == '__main__':
 
 @app.route('/traffic-information')
 def requestTraffic():
+	
 	URL = "https://traffic.cit.api.here.com/traffic/6.2/flow.json?app_id=67Jad2HjPh8wXb3Eau3A&app_code=3hlMkBLEzMRbJp-Aondktw&bbox=55.824430445857764,12.119293212890625;55.552718667216595,12.712554931640625&responseattributes=sh"
 	r = requests.get(url = URL) 
 	data = r.json() 
@@ -83,6 +80,7 @@ def requestTraffic():
 	lat_point = []
 	lon_point = []
 	features = []
+	buffer = []
 	for rws in data['RWS']:
 		#print(rws)
 		
@@ -199,9 +197,7 @@ def requestTraffic():
 																	#print(ccc)
 
 																	lines = LineString(json.loads(ccc))
-																	#Buffer around the lines
-																	buff = lines.buffer(0.0005)
-																	#print (lines)
+																
 																	
 																	# add more features...
 																	# features.append(...)
@@ -216,7 +212,7 @@ def requestTraffic():
 													ssFreeFlow = ssFinalValues
 													#print("SS Free Flow: "+str(ssFreeFlow))
 
-
+	
 
 	#Flipping the coordinates in the GeoJson Featured Collection
 	def flip_geojson_coordinates(geo):
@@ -234,7 +230,15 @@ def requestTraffic():
 
 	flip_coordinates = feature_collection
 	flip_geojson_coordinates(flip_coordinates)
-	return feature_collection
+	# #Adding buffers
+	# for geom in feature_collection['features']:
+	# 	route_buffer = LineString(geom['geometry']['coordinates']).buffer(0.0005) # Create geometry buffer
+	# 	simp_geom = route_buffer.simplify(0.0000005) # Simplify geometry for better handling
+	# 	buffer.append(simp_geom)
+	# union_buffer = cascaded_union(buffer)
+	# road_buffer = Feature(geometry=union_buffer)
+
+	return (feature_collection)
 	
 @app.route('/request-route&start=<lon>,<lat>;&end=<lon2>,<lat2>;&profile=<profile>')
 def requestRoute(lon, lat, lon2, lat2, profile):
@@ -250,5 +254,49 @@ def requestRoute(lon, lat, lon2, lat2, profile):
 						'geometry': 'true'}
 
 	regular_route = clnt.directions(**direction_params) # Direction request
+
 	return regular_route
 
+@app.route('/avoid-route&start=<lon>,<lat>;&end=<lon2>,<lat2>;&profile=<profile>')
+def avoidRoute(lon, lat, lon2, lat2, profile):
+	coordinates = [[lon, lat], [lon2, lat2]]
+	buffer =[]
+	api_key = '5b3ce3597851110001cf62480bce1c9f6f5041d0ae79d1a8847f8b98' #https://openrouteservice.org/sign-up
+	clnt = client.Client(key=api_key)
+	get_feature_collection= "http://127.0.0.1:5000/traffic-information"
+	feature_collection_req = requests.get(url = get_feature_collection) 
+	feature_collection = feature_collection_req.json() 
+	#Adding buffers
+	for geom in feature_collection['features']:
+		route_buffer = LineString(geom['geometry']['coordinates']).buffer(0.0005) # Create geometry buffer
+		simp_geom = route_buffer.simplify(0.0000005) # Simplify geometry for better handling
+		buffer.append(simp_geom)
+	union_buffer = cascaded_union(buffer)
+	
+	
+	avoid_request = {'coordinates': coordinates, 
+                'format_out': 'geojson',
+                'profile': profile,
+                'preference': 'shortest',
+                'instructions': False,
+                 'options': {'avoid_polygons': mapping(union_buffer)}} 
+	avoid_route = clnt.directions(**avoid_request)
+
+	return avoid_route
+
+
+@app.route('/avoid-polygons')
+def avoidPolygons():
+	buffer=[]
+	get_feature_collection= "http://127.0.0.1:5000/traffic-information"
+	feature_collection_req = requests.get(url = get_feature_collection) 
+	feature_collection = feature_collection_req.json() 
+	#Adding buffers
+	for geom in feature_collection['features']:
+		route_buffer = LineString(geom['geometry']['coordinates']).buffer(0.0005) # Create geometry buffer
+		simp_geom = route_buffer.simplify(0.0000005) # Simplify geometry for better handling
+		buffer.append(simp_geom)
+	union_buffer = cascaded_union(buffer)
+	json_buffer = Feature(geometry=union_buffer)
+
+	return json_buffer
