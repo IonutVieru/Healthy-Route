@@ -118,7 +118,7 @@ def requestTraffic():
 							if key=='JF':
 								jamFactor = value
 								#print("Jam Factor: "+str(jamFactor))
-								if jamFactor > 8:
+								if jamFactor > 5:
 									for shp in fi['SHP']:
 										#print(jamFactor)
 										
@@ -176,7 +176,7 @@ def requestTraffic():
 												ssJamFactor = ssFinalValues
 												#print(ssJamFactor)
 												#If the Jam Factor == 10 give me the coordonates
-												if ssJamFactor > 8:
+												if ssJamFactor > 5:
 													jammm = ssJamFactor
 													#print (jammm)
 													#print("SS Jam Factor: "+str(ssJamFactor))
@@ -250,7 +250,8 @@ def requestRoute(lon, lat, lon2, lat2, profile):
 	direction_params = {'coordinates': coordinates,
 						'profile': profile, 
 						'format_out': 'geojson',
-						'preference': 'fastest',
+						
+                		'instructions': False,
 						'geometry': 'true'}
 
 	regular_route = clnt.directions(**direction_params) # Direction request
@@ -277,7 +278,7 @@ def avoidRoute(lon, lat, lon2, lat2, profile):
 	avoid_request = {'coordinates': coordinates, 
                 'format_out': 'geojson',
                 'profile': profile,
-                'preference': 'shortest',
+                
                 'instructions': False,
                  'options': {'avoid_polygons': mapping(union_buffer)}} 
 	avoid_route = clnt.directions(**avoid_request)

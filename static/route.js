@@ -189,7 +189,13 @@ var removeRoute = function() {
     });
 }
 
-
+var hereTrafficayer = new L.TileLayer('https://tiles.traffic.api.here.com/traffic/6.0/tiles/{z}/{x}/{y}/256/png32?app_id=67Jad2HjPh8wXb3Eau3A&app_code=3hlMkBLEzMRbJp-Aondktw', 
+    { attribution: '&copy; Any Attribution', 
+    minZoom: 1, 
+    maxZoom: 20, 
+    opacity:0.5,
+        }
+    );
 
 var trafficFlowLayer = new tomtom.L.TomTomTrafficFlowLayer(); 
 let layerControl = {
