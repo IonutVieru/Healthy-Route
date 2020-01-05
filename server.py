@@ -269,7 +269,7 @@ def avoidRoute(lon, lat, lon2, lat2, profile):
 	feature_collection = feature_collection_req.json() 
 	#Adding buffers
 	for geom in feature_collection['features']:
-		route_buffer = LineString(geom['geometry']['coordinates']).buffer(0.0005) # Create geometry buffer
+		route_buffer = LineString(geom['geometry']['coordinates']).buffer(0.00008) # Create geometry buffer
 		simp_geom = route_buffer.simplify(0.0000005) # Simplify geometry for better handling
 		buffer.append(simp_geom)
 	union_buffer = cascaded_union(buffer)
@@ -294,7 +294,7 @@ def avoidPolygons():
 	feature_collection = feature_collection_req.json() 
 	#Adding buffers
 	for geom in feature_collection['features']:
-		route_buffer = LineString(geom['geometry']['coordinates']).buffer(0.0005) # Create geometry buffer
+		route_buffer = LineString(geom['geometry']['coordinates']).buffer(0.00008) # Create geometry buffer
 		simp_geom = route_buffer.simplify(0.0000005) # Simplify geometry for better handling
 		buffer.append(simp_geom)
 	union_buffer = cascaded_union(buffer)

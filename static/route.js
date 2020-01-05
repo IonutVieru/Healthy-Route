@@ -104,7 +104,9 @@ function routeRequest(lon,lat,lon2,lat2,profile){
   // Add requested external GeoJSON to map
   var kyCounties = L.geoJSON(route1.responseJSON, {
     onEachFeature: function (feature, layer) {
-        layer.myTag = "myGeoJSON"
+        layer.myTag = "myGeoJSON",
+        layer.bindPopup('<div><p>Distance: '+feature.properties.summary.distance/1000+'</p>'+'<p>Time: '+feature.properties.summary.duration/60+'</p></div>')
+        
     },
     opacity: 0.5,
     color: 'blue',
@@ -137,7 +139,8 @@ function avoidPolygonsRequest(lon,lat,lon2,lat2,profile){
  // Add requested external GeoJSON to map
  var kyCounties = L.geoJSON(route.responseJSON, {
    onEachFeature: function (feature, layer) {
-       layer.myTag = "myGeoJSON"
+       layer.myTag = "myGeoJSON",
+       layer.bindPopup('<div><p>Distance: '+feature.properties.summary.distance/1000+'</p>'+'<p>Time: '+feature.properties.summary.duration/60+'</p></div>')
    },
    opacity: 0.5,
    color: 'black',
@@ -167,7 +170,9 @@ function avoidPolygonsRequest(lon,lat,lon2,lat2,profile){
  // Add requested external GeoJSON to map
  var kyCounties = L.geoJSON(polygon.responseJSON, {
    onEachFeature: function (feature, layer) {
-       layer.myTag = "Traffic polygon buffers"
+       layer.myTag = "Traffic polygon buffers",
+       layer.bindPopup("Hey")
+       
    },
    opacity: 0.5,
    color: 'red',
