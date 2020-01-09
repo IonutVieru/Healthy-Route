@@ -2,7 +2,7 @@
 var map = L.map('map',{
   center: [55.676111, 12.568333],
   zoom:15,
-  basePath: osm
+  layers: osm
 });
 var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   minZoom:10,
@@ -12,13 +12,26 @@ var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 }).addTo( map );
 
 //Adding the Here.com Traffic layer
-var hereTrafficayer = new L.TileLayer('https://tiles.traffic.api.here.com/traffic/6.0/tiles/{z}/{x}/{y}/256/png32?app_id=67Jad2HjPh8wXb3Eau3A&app_code=3hlMkBLEzMRbJp-Aondktw', 
-    { attribution: '&copy; Any Attribution', 
+var hereTrafficayer = new L.TileLayer('https://tiles.traffic.api.here.com/traffic/6.0/tiles/{z}/{x}/{y}/256/png32'+
+    '?app_id=67Jad2HjPh8wXb3Eau3A&app_code=3hlMkBLEzMRbJp-Aondktw', 
+    { attribution: 'Here.com Traffic API', 
     minZoom: 1, 
     maxZoom: 20, 
     opacity:0.5,
         }
     );
+//Adding layer control
+let layerControl = {
+  //Here.com Traffic Layer
+  "Here.com Traffic ": hereTrafficayer,
+}
+   
+//Adding layer control
+var baseMaps = {
+ "OSM": map
+ };
+L.control.layers( baseMaps, layerControl ).addTo( map )
+
 //Global variables
 var lat;
 var lon;
@@ -31,7 +44,6 @@ var clicks = 0; //click counter
 //Requesting routes 
 map.on('click',clickME);
     function clickME(e) {
-      
     	if (clicks == 0){
         //Storring the click coordinates into lat and lon variables
     		lat = e.latlng.lat;
@@ -43,42 +55,37 @@ map.on('click',clickME);
     		console.log("First click:You clicked the map at LAT: "+ lat+" and LONG: "+lon );
         //Getting the travelling mode(checkbox values)
         //Cycling
-        if ($('#routeCycle').is(':checked')) {
-          //Setting the traveling mode to cycling
-          profile = 'cycling-regular';
-         
+        if ($('#routeCar').is(':checked')) {
+          //Setting the traveling mode to driving
+          profile = 'driving-car';
           console.log(profile);
         //Walking
         }else if ($('#routeWalking').is(':checked')){
           //Setting the traveling mode to walking
           profile = 'foot-walking';
           console.log(profile);
-         
         }else{
-          //Setting the traveling mode to driving - checked by default
-          profile ='driving-car'
+          //Setting the traveling mode to cycling - checked by default
+          profile = 'cycling-regular';
           console.log(profile);
-         
-}
+
+    }
         //Incrementing the click counter
     		clicks += 1;
     	}else if(clicks == 1){
         //Storring the click coordinates into lat2 and lon2 variables on the second click
     		lat2 = e.latlng.lat;
     		lon2 = e.latlng.lng;
-
-        
     		//Add a marker to show where you clicked.
     		Marker2 = L.marker([lat2,lon2]).bindPopup('End');
             Marker2.addTo(map);
-            
     		console.log("Second click:You clicked the map at LAT: "+ lat2+"and LONG: "+lon2+"Profile="+profile );
+
         //Regular route request to the server
         routeRequest(lon, lat, lon2, lat2, profile);
-        
+
         //Avoid polygons route request to the server
         avoidPolygonsRequest(lon,lat,lon2,lat2,profile);
-        
         //Incrementing the click counter
     		clicks +=1;
     	} else if(clicks >= 2){
@@ -145,6 +152,7 @@ function avoidPolygonsRequest(lon,lat,lon2,lat2,profile){
  var alternativeRoute = L.geoJSON(route.responseJSON, {
    onEachFeature: function (feature, layer) {
        layer.myTag = "myGeoJSON",
+       //Ads a popup with the route distance and traveling time
        layer.bindPopup('<div><p>Distance: '+feature.properties.summary.distance/1000+'</p>'+'<p>Time: '+feature.properties.summary.duration/60+'</p></div>')
    },
    opacity: 0.5,
@@ -196,17 +204,6 @@ var removeRoute = function() {
     });
 }
 
-//Setting the layers
-let layerControl = {
-  //Here.com Traffic Layer
-  "Here.com Traffic ": hereTrafficayer
-  
-}
-   
-//Ads layer control
-var baseMaps = {
- "OSM": map
- };
 //Adding the polylines on the map
  $(document).ready(function(){
   var traffic1 = $.ajax({
@@ -221,6 +218,6 @@ var baseMaps = {
   })
 });
 
-L.control.layers( baseMaps, layerControl ).addTo( map )
+
 
 
