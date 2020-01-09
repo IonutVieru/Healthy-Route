@@ -200,8 +200,8 @@ def avoidRoute(lon, lat, lon2, lat2, profile):
 	#Adding buffers
 	for geom in feature_collection['features']:
 		route_buffer = LineString(geom['geometry']['coordinates']).buffer(0.0005) # Create geometry buffer
-		#simp_geom = route_buffer.simplify(0.00005) # Simplify geometry 
-		buffer.append(route_buffer)
+		simp_geom = route_buffer.simplify(0.00005) # Simplify geometry 
+		buffer.append(simp_geom)
 	#Merging the buffer geometries in case there are 2 or more polygons next to each other
 	union_buffer = cascaded_union(buffer)
 	
@@ -229,8 +229,6 @@ def avoidPolygons():
 	for geom in feature_collection['features']:
 		# Create geometry buffer
 		route_buffer = LineString(geom['geometry']['coordinates']).buffer(0.0005)
-		# Simplify buffer geometry 
-		#simp_geom = route_buffer.simplify(0.0000005)
 		#Append geometries to the buffer list 
 		buffer.append(route_buffer)
 	#Merging the buffer geometries in case there are 2 or more polygons next to eachother
