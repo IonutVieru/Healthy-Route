@@ -118,7 +118,7 @@ function routeRequest(lon,lat,lon2,lat2,profile){
   var shortestPath = L.geoJSON(route1.responseJSON, {
     onEachFeature: function (feature, layer) {
         layer.myTag = "myGeoJSON",
-        layer.bindPopup('<div><p>Distance: '+feature.properties.summary.distance/1000+'</p>'+'<p>Time: '+feature.properties.summary.duration/60+'</p></div>')
+        layer.bindPopup('<div><p>Distance: '+feature.properties.summary.distance/1000+'</p>'+'<p>Time: '+feature.properties.summary.duration/60+'</p></div>') //Ads a popup with the route distance and traveling time
         
     },
     opacity: 0.5,
