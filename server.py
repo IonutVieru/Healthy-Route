@@ -1,5 +1,4 @@
 from flask import Flask, escape, request, Response,  render_template, jsonify, redirect, url_for, session, flash
-import psycopg2
 import os
 import json
 import requests
@@ -8,19 +7,14 @@ import folium
 from openrouteservice import client
 from shapely.geometry import LineString, Polygon, mapping, shape
 from shapely.ops import cascaded_union
-import geopandas as gpd
 from geojson import Point, Feature, FeatureCollection, dump, MultiPolygon
 import numpy as np
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
-app = Flask(__name__, template_folder='templates')
+app = Flask(__name__)
 
-
-#print(data)
 @app.route('/')
-
-
 def index():
 	buffer = []
 	api_key = '5b3ce3597851110001cf62480bce1c9f6f5041d0ae79d1a8847f8b98' #https://openrouteservice.org/sign-up
@@ -52,167 +46,105 @@ def index():
 	style_route = lambda x: {
 		'color' : 'green',
 	}
-	
 	map.add_child(folium.map.LayerControl())
 	
 	return map._repr_html_()
 
-
-
-
 if __name__ == '__main__':
 	app.run(debug=True)
 
-
+#Defining the route
 @app.route('/traffic-information')
 def requestTraffic():
-	
-	URL = "https://traffic.cit.api.here.com/traffic/6.2/flow.json?app_id=67Jad2HjPh8wXb3Eau3A&app_code=3hlMkBLEzMRbJp-Aondktw&bbox=55.824430445857764,12.119293212890625;55.552718667216595,12.712554931640625&responseattributes=sh"
-	r = requests.get(url = URL) 
+	#Output format
+	format = 'flow.json'
+	#API Credentials
+	apiCredentials = "app_id=67Jad2HjPh8wXb3Eau3A&app_code=3hlMkBLEzMRbJp-Aondktw"
+	#Response attributes
+	responseAttributes = "responseattributes=sh"
+	#Defining a bounding box for Copenhagen area
+	bbox = "bbox=55.824430445857764,12.119293212890625;55.552718667216595,12.712554931640625"
+	#URL request
+	URL = "https://traffic.cit.api.here.com/traffic/6.2/"+ format+"?"+apiCredentials+"&"+bbox+"&"+responseAttributes
+	r = requests.get(url = URL)
+	#Reading the json data 
 	data = r.json() 
 	dta = data['RWS']
-	URL = "https://traffic.cit.api.here.com/traffic/6.2/flow.json?app_id=67Jad2HjPh8wXb3Eau3A&app_code=3hlMkBLEzMRbJp-Aondktw&bbox=55.824430445857764,12.119293212890625;55.552718667216595,12.712554931640625&responseattributes=sh"
-	r = requests.get(url = URL) 
-	data = r.json() 
-	dta = data['RWS']
-	#print(data)
-	jam = []
-	lat_point = []
-	lon_point = []
+	#Empty list that will store the linestrings we make from the coordinates
 	features = []
-	buffer = []
+	#Parsing the data
 	for rws in data['RWS']:
-		#print(rws)
-		
 		for rw in rws['RW']:
-			#print(rw)
-			
 			for fis in rw['FIS']:
-				#print(fis)
-				
 				for fi in fis['FI']:
-					#print(fi)
-					#########################   
-					#Getting the coordonates#
-					#########################
-					#for shp in fi['SHP']:
-						#print(shp)
-						#for key, value in shp.items():
-							#print(value)
-							
 					##########################    
 					#Getting the current flow#
 					##########################
 					for cf in fi['CF']:
-						#print(cf)
-						
 						for key, value in cf.items():
-							#print(key)
-							#print(value)
 							####################################################################    
 							#Getting the JamFactor, SpeedUncut and FreeFlow in the current flow#
 							####################################################################
 							if key=='SU':
 								speedUncut = value
-								#print("Speed Uncut: "+str(speedUncut))
 							if key=='JF':
 								jamFactor = value
-								#print("Jam Factor: "+str(jamFactor))
-								if jamFactor > 5:
+								#If the Jam Factor > 8 returns the coordonates
+								if jamFactor > 8:
 									for shp in fi['SHP']:
-										#print(jamFactor)
-										
 										for key, value in shp.items():
 											#Fixing the parsing
 											if key == 'value':
-												#print(key)
 												coordset = value
-												#print (coordset)
 												for line in coordset:
-													#print(line)
+													#Preparing the coordinates set to create line strings
 													fields=line[0:-1].replace(' ', '],[').replace(',',', ')
-
 													ccc=('[['+fields+']]')
-													#print(ccc)
-
+													#Creates line strings for all the coordinates set
 													lines = LineString(json.loads(ccc))
-													#print (lines)
-
-													# add more features...
-													# features.append(...)
+													#Appending the line sting to the feature list 
 													features.append(Feature(geometry=lines))
-													#Creates a FeatureCollection
+													#Creates a FeatureCollection from the features
 													feature_collection = FeatureCollection(features)
 							if key=='FF':
 								freeFlow = value
-								#print("Free Flow: "+str(freeFlow))
-								
-							#Getting SS values
+							#Getting SSS values
 							if key == 'SSS':
-								#print(value)
 								ssValue = value
-								
 								for key, value in ssValue.items():
-									#print(key)
-									#print(value)
 									ssValueList = value
-								   
 									for value in ssValueList:
-										#print(value)
 										ssValueListDict = value
-										
 										#########################################################    
-										#Getting Jam Factor, Free Flow and Speed Uncut inside SS#
+										#Getting Jam Factor, Free Flow and Speed Uncut inside SSS#
 										#########################################################
 										for key, value in ssValueListDict.items():
-											#print(key)
-											#print(value)
 											ssFinalValues = value
 											if key == 'SU':                          
 												ssSpeedUncut = ssFinalValues
-												#print("SS Speed Uncut: "+str(ssSpeedUncut))
 											if key == 'JF':
-												
 												ssJamFactor = ssFinalValues
-												#print(ssJamFactor)
-												#If the Jam Factor == 10 give me the coordonates
-												if ssJamFactor > 5:
+												#If the Jam Factor > 8 return the coordonates
+												if ssJamFactor > 8:
 													jammm = ssJamFactor
-													#print (jammm)
-													#print("SS Jam Factor: "+str(ssJamFactor))
 													for shp in fi['SHP']:
-														#print(shp)
-													
 														for key, value in shp.items():
 															#Fixing the parsing
 															if key == 'value':
-																#print(key)
 																coordset = value
-																#print (coordset)
 																for line in coordset:
-																	#print(line)
+																	#Preparing the coordinates set to create line strings
 																	fields=line[0:-1].replace(' ', '],[').replace(',',', ')
-
 																	ccc=('[['+fields+']]')
-																	#print(ccc)
-
+																	#Creates line strings for all the coordinates set
 																	lines = LineString(json.loads(ccc))
-																
-																	
-																	# add more features...
-																	# features.append(...)
+																	#Appending the line sting to the feature list 
 																	features.append(Feature(geometry=lines))
-																	
-																	#Creates a FeatureCollection
+																	#Creates a FeatureCollection from the features
 																	feature_collection = FeatureCollection(features)
-																	#print(feature_collection)																   
 
-													
 												if key == 'FF':
 													ssFreeFlow = ssFinalValues
-													#print("SS Free Flow: "+str(ssFreeFlow))
-
-	
 
 	#Flipping the coordinates in the GeoJson Featured Collection
 	def flip_geojson_coordinates(geo):
@@ -230,55 +162,54 @@ def requestTraffic():
 
 	flip_coordinates = feature_collection
 	flip_geojson_coordinates(flip_coordinates)
-	# #Adding buffers
-	# for geom in feature_collection['features']:
-	# 	route_buffer = LineString(geom['geometry']['coordinates']).buffer(0.0005) # Create geometry buffer
-	# 	simp_geom = route_buffer.simplify(0.0000005) # Simplify geometry for better handling
-	# 	buffer.append(simp_geom)
-	# union_buffer = cascaded_union(buffer)
-	# road_buffer = Feature(geometry=union_buffer)
-
+	
 	return (feature_collection)
 	
 @app.route('/request-route&start=<lon>,<lat>;&end=<lon2>,<lat2>;&profile=<profile>')
 def requestRoute(lon, lat, lon2, lat2, profile):
-	api_key = '5b3ce3597851110001cf62480bce1c9f6f5041d0ae79d1a8847f8b98' #https://openrouteservice.org/sign-up
+	#Open Route Service credentials
+	api_key = '5b3ce3597851110001cf62480bce1c9f6f5041d0ae79d1a8847f8b98' 
 	clnt = client.Client(key=api_key)
-	 #Request route
+	#Seting the route coordinates
 	coordinates = [[lon, lat], [lon2, lat2]]
-	
+	#Defines the route parameters
 	direction_params = {'coordinates': coordinates,
 						'profile': profile, 
 						'format_out': 'geojson',
-						
+						'preference': 'shortest',
                 		'instructions': False,
 						'geometry': 'true'}
-
-	regular_route = clnt.directions(**direction_params) # Direction request
+	#Makes a request to Open Route Service to get the route					
+	regular_route = clnt.directions(**direction_params) 
 
 	return regular_route
 
+#Avoid polygons route request
 @app.route('/avoid-route&start=<lon>,<lat>;&end=<lon2>,<lat2>;&profile=<profile>')
 def avoidRoute(lon, lat, lon2, lat2, profile):
-	coordinates = [[lon, lat], [lon2, lat2]]
 	buffer =[]
-	api_key = '5b3ce3597851110001cf62480bce1c9f6f5041d0ae79d1a8847f8b98' #https://openrouteservice.org/sign-up
+	#Seting the route coordinates
+	coordinates = [[lon, lat], [lon2, lat2]]
+	#Open Route Service credentials
+	api_key = '5b3ce3597851110001cf62480bce1c9f6f5041d0ae79d1a8847f8b98' 
 	clnt = client.Client(key=api_key)
+	#Makes a request to get the traffic information
 	get_feature_collection= "http://127.0.0.1:5000/traffic-information"
 	feature_collection_req = requests.get(url = get_feature_collection) 
 	feature_collection = feature_collection_req.json() 
 	#Adding buffers
 	for geom in feature_collection['features']:
-		route_buffer = LineString(geom['geometry']['coordinates']).buffer(0.00008) # Create geometry buffer
-		simp_geom = route_buffer.simplify(0.0000005) # Simplify geometry for better handling
-		buffer.append(simp_geom)
+		route_buffer = LineString(geom['geometry']['coordinates']).buffer(0.0005) # Create geometry buffer
+		#simp_geom = route_buffer.simplify(0.00005) # Simplify geometry 
+		buffer.append(route_buffer)
+	#Merging the buffer geometries in case there are 2 or more polygons next to each other
 	union_buffer = cascaded_union(buffer)
 	
 	
 	avoid_request = {'coordinates': coordinates, 
                 'format_out': 'geojson',
                 'profile': profile,
-                
+                'preference': 'shortest',
                 'instructions': False,
                  'options': {'avoid_polygons': mapping(union_buffer)}} 
 	avoid_route = clnt.directions(**avoid_request)
@@ -288,15 +219,21 @@ def avoidRoute(lon, lat, lon2, lat2, profile):
 
 @app.route('/avoid-polygons')
 def avoidPolygons():
+	#Initialising an empty list to store the buffers
 	buffer=[]
+	#Makes a request to get Feature Collection
 	get_feature_collection= "http://127.0.0.1:5000/traffic-information"
 	feature_collection_req = requests.get(url = get_feature_collection) 
 	feature_collection = feature_collection_req.json() 
 	#Adding buffers
 	for geom in feature_collection['features']:
-		route_buffer = LineString(geom['geometry']['coordinates']).buffer(0.00008) # Create geometry buffer
-		simp_geom = route_buffer.simplify(0.0000005) # Simplify geometry for better handling
-		buffer.append(simp_geom)
+		# Create geometry buffer
+		route_buffer = LineString(geom['geometry']['coordinates']).buffer(0.0005)
+		# Simplify buffer geometry 
+		#simp_geom = route_buffer.simplify(0.0000005)
+		#Append geometries to the buffer list 
+		buffer.append(route_buffer)
+	#Merging the buffer geometries in case there are 2 or more polygons next to eachother
 	union_buffer = cascaded_union(buffer)
 	json_buffer = Feature(geometry=union_buffer)
 
