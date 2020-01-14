@@ -170,9 +170,7 @@ function avoidPolygonsRequest(lon,lat,lon2,lat2,profile){
  // Add requested external GeoJSON to map
  var kyCounties = L.geoJSON(polygon.responseJSON, {
    onEachFeature: function (feature, layer) {
-       layer.myTag = "Traffic polygon buffers",
-       layer.bindPopup("Hey")
-       
+       layer.myTag = "Traffic polygon buffers"
    },
    opacity: 0.5,
    color: 'red',
@@ -182,7 +180,7 @@ function avoidPolygonsRequest(lon,lat,lon2,lat2,profile){
 });
  }
 //Initialise the function
-getBuffer();
+//getBuffer();
 
 //Removes the old route
 var removeRoute = function() {
@@ -214,20 +212,90 @@ let layerControl = {
 var baseMaps = {
  "OSM": osm
  };
+//Traffic line strings
+//  $(document).ready(function(){
+//   var traffic1 = $.ajax({
+//   url: '/traffic-information',
+//   dataType: "json",
+//   success: function(response){
+//     geojsonLayer = L.geoJson(response).addTo(map);
+//   },
+//   error: function(xhr) {
+//     alert(`Route: ${xhr.statusText}`);
+//   }
+//   })
+// });
 
- $(document).ready(function(){
-  var traffic1 = $.ajax({
-  url: '/traffic-information',
-  dataType: "json",
-  success: function(response){
-    geojsonLayer = L.geoJson(response).addTo(map);
-  },
-  error: function(xhr) {
-    alert(`Route: ${xhr.statusText}`);
-  }
-  })
+
+//Traffic line strings
+function getLineStrings(){
+  //Request URL
+ var req = '/traffic-information'
+  
+ //Get request to OpenRouteService to get the route 
+ var line = $.ajax({
+ url: req,
+ dataType: "json",
+ success: console.log("Traffic polygon buffers successfully loaded."),
+ error: function(xhr) {
+   alert(`Route: ${xhr.statusText}`);
+ }
+ });
+
+  // when().done() SECTION
+ // Add the variable for each of your AJAX requests to $.when()
+ $.when(line).done(function() {
+ // Add requested external GeoJSON to map
+ var kyCounties = L.geoJSON(line.responseJSON, {
+   onEachFeature: function (feature, layer) {
+       layer.myTag = "Traffic lines"
+   },
+   
+   opacity: 0.5,
+   color: 'green',
+   weight: 10,
+   zoomAnimated: true
+   }).addTo(map);
 });
+ }
+ //Initialise the function
+ getLineStrings()
 
 L.control.layers( baseMaps, layerControl ).addTo( map )
 
 
+//Jam factor line strings
+//To be deleted
+function getLineStrings(){
+  //Request URL
+ var req = '/jam-factor'
+  
+ //Get request to OpenRouteService to get the route 
+ var line = $.ajax({
+ url: req,
+ dataType: "json",
+ success: console.log("Traffic polygon buffers successfully loaded."),
+ error: function(xhr) {
+   alert(`Route: ${xhr.statusText}`);
+ }
+ });
+
+  // when().done() SECTION
+ // Add the variable for each of your AJAX requests to $.when()
+ $.when(line).done(function() {
+ // Add requested external GeoJSON to map
+ var kyCounties = L.geoJSON(line.responseJSON, {
+   onEachFeature: function (feature, layer) {
+       layer.myTag = "Traffic lines",
+       layer.bindPopup(feature.properties.JF.toString())
+   },
+   
+   opacity: 0.5,
+   color: 'red',
+   weight: 5,
+   zoomAnimated: true
+   }).addTo(map);
+});
+ }
+ //Initialise the function
+ getLineStrings()

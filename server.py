@@ -301,3 +301,112 @@ def avoidPolygons():
 	json_buffer = Feature(geometry=union_buffer)
 
 	return json_buffer
+
+
+@app.route('/jam-factor')
+def jamFactor():
+	URL = "https://traffic.cit.api.here.com/traffic/6.2/flow.json?app_id=67Jad2HjPh8wXb3Eau3A&app_code=3hlMkBLEzMRbJp-Aondktw&bbox=55.824430445857764,12.119293212890625;55.552718667216595,12.712554931640625&responseattributes=sh"
+	r = requests.get(url = URL) 
+	data = r.json() 
+	dta = data['RWS']
+	#print(data)
+	map = folium.Map([55.71459, 12.577], zoom_start=5, tiles='cartodbpositron')
+	lat_point = []
+	lon_point = []
+	features = []
+	jam_all = []
+	medfeatures = []
+	medjam_all = []
+	lowfeatures = []
+	lowjam_all = []
+	all_features = []
+	all_jam = []
+
+	for rws in data['RWS']:
+		#print(rws)
+		
+		for rw in rws['RW']:
+			#print(rw)
+			
+			for fis in rw['FIS']:
+				#print(fis)
+				
+				for fi in fis['FI']:
+					#print(fi)
+					#########################   
+					#Getting the coordonates#
+					#########################
+					#for shp in fi['SHP']:
+						#print(shp)
+						#for key, value in shp.items():
+							#print(value)
+							
+					##########################    
+					#Getting the current flow#
+					##########################
+					for cf in fi['CF']:
+						#print(cf)
+						
+						for key, value in cf.items():
+							#print(key)
+							#print(value)
+							####################################################################    
+							#Getting the JamFactor, SpeedUncut and FreeFlow in the current flow#
+							####################################################################
+							if key=='SU':
+								speedUncut = value
+								#print("Speed Uncut: "+str(speedUncut))
+							if key=='JF':
+								jamFactor = value
+								#print("Jam Factor: "+str(jamFactor))
+								if jamFactor > 0.1:
+									
+									for shp in fi['SHP']:
+										#print(jamFactor)
+										
+										for key, value in shp.items():
+											#Fixing the parsing
+											if key == 'value':
+												#print(key)
+												coordset = value
+												jam_all.append(jamFactor)
+												#print (coordset)
+												all_jam.append(jamFactor)
+												for line in coordset:
+													#print(line)
+													fields=line[0:-1].replace(' ', '],[').replace(',',', ')
+
+													ccc=('[['+fields+']]')
+													#print(ccc)
+
+													lines = LineString(json.loads(ccc))
+													#print (lines)
+
+													# add more features...
+													# features.append(...)
+													features.append(Feature(geometry=lines))
+													all_features.append(Feature(geometry=lines))
+													#Creates a FeatureCollection
+													feature_collection = FeatureCollection(features)
+#ADD THE JAM FACTOR TO EACH OF THE FEATURE COLLECTIONS ACCORDING TO THEIR CONGESTION LEVEL
+
+	for i in range(len(jam_all)):
+		feature_collection[i].properties['JF'] = jam_all[i]
+	
+	#Flipping the coordinates in the GeoJson Featured Collection
+	def flip_geojson_coordinates(geo):
+		if isinstance(geo, dict):
+			for k, v in geo.items():
+				if k == "coordinates":
+					z = np.asarray(geo[k])
+					f = z.flatten()
+					geo[k] = np.dstack((f[1::2], f[::2])).reshape(z.shape).tolist()
+				else:
+					flip_geojson_coordinates(v)
+		elif isinstance(geo, list):
+			for k in geo:
+				flip_geojson_coordinates(k)
+
+	flip_coordinates = feature_collection
+	flip_geojson_coordinates(flip_coordinates)
+	return(feature_collection)
